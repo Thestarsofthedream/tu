@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>短链接生成器</title>
+    <style>
+        /* 全局样式 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #ffffffcc;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #generateBtn {
+            background-color: #007BFF;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        #generateBtn:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        #copyBtn {
+            background-color: #28a745;
+            color: white;
+            width: 100%;
+        }
+
+        #copyBtn:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        #result {
+            margin-top: 20px;
+            background-color: #f1f1f1;
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+            word-break: break-all;
+            min-height: 50px;
+        }
+
+        #result::before {
+            content: '生成的短链接：';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background-color: #f1f1f1;
+            padding: 0 5px;
+            font-weight: bold;
+        }
+
+        #shortLink {
+            color: #007BFF;
+            font-weight: bold;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            input[type="text"], button {
+                font-size: 0.9em;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>长链接转短链接工具</h1>
+        <div class="input-group">
+            <input type="text" id="longUrl" placeholder="请输入长链接">
+        </div>
+        <button id="generateBtn" onclick="generateShortUrl()">生成短链接</button>
+        <div id="result"></div>
+        <button id="copyBtn" onclick="copyToClipboard()" disabled>复制短链接</button>
+    </div>
+
+    <script>
+        function generateShortUrl() {
+            const longUrl = document.getElementById('longUrl').value.trim();
+            const resultDiv = document.getElementById('result');
+            const copyBtn = document.getElementById('copyBtn');
+
+            if (!longUrl) {
+                resultDiv.innerHTML = '<p style="color: red;">请输入长链接后再尝试。</p>';
+                copyBtn.disabled = true;
+                return;
+            }
+
+            // 这里假设API接受一个名为 'url' 的参数来传递长链接，实际需按API要求调整
+            const apiEndpoint = 'https://api.suyanw.cn/api/dwz.php?url=' + encodeURIComponent(longUrl);
+            fetch(apiEndpoint)
+                .then(response => response.text())
+                .then(data => {
+                    try {
+                        const jsonData = JSON.parse(data);
+                        if (jsonData.code === 1000 && jsonData.data && jsonData.data.url) {
+                            const shortUrl = jsonData.data.url;
+                            resultDiv.innerHTML = `<p>生成的短链接：<span id="shortLink">${shortUrl}</span></p>`;
+                            copyBtn.disabled = false;
+                            copyBtn.setAttribute('data-url', shortUrl);
+                        } else {
+                            resultDiv.innerHTML = '<p style="color: red;">生成短链接出错，请检查输入或稍后重试。</p>';
+                            copyBtn.disabled = true;
+                        }
+                    } catch (e) {
+                        console.error('解析API响应出错：', e);
+                        resultDiv.innerHTML = '<p style="color: red;">解析API响应出错，请检查输入或稍后重试。</p>';
+                        copyBtn.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('调用API出错：', error);
+                    resultDiv.innerHTML = '<p style="color: red;">调用API时出现错误，请检查输入或稍后重试。</p>';
+                    copyBtn.disabled = true;
+                });
+        }
+
+        function copyToClipboard() {
+            const shortUrl = document.getElementById('copyBtn').getAttribute('data-url');
+            const tempTextarea = document.createElement("textarea");
+            tempTextarea.value = shortUrl;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempTextarea);
+
+            alert('短链接已复制到剪贴板！');
+        }
+    </script>
+</body>
+
+</html>
